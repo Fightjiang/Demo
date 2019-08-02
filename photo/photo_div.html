@@ -1,0 +1,250 @@
+
+ <html>
+		<head>
+			<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+			<title>头像裁剪</title>
+			<style type="text/css">
+				.imageBox{
+					position: relative;
+					height: 400px;
+					width: 580px;
+					border:1px solid #aaa;
+					background: #fff;
+					overflow: hidden;
+					background-repeat: no-repeat;
+					cursor:move;
+					font-size: 14px;
+				}
+				
+				.imageBox .thumbBox{
+					position: absolute;
+					top: 50%;
+					left: 50%;
+					width: 200px;
+					height: 200px;
+					margin-top: -100px;
+					margin-left: -100px;
+					box-sizing: border-box;
+					border: 1px solid rgb(102, 102, 102);
+					box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.5);
+					background: none repeat scroll 0% 0% transparent;
+				}
+					
+				.imageBox .spinner{
+					position: absolute;
+					top: 0;
+					left: 0;
+					bottom: 0;
+					right: 0;
+					text-align: center;
+					line-height: 400px;
+					background: rgba(0,0,0,0.7);
+				}
+				.action{
+					width: 580px;
+					height: 32px;
+					margin: 10px 0;
+				}
+				.action .fileupload{
+					position: relative;
+					width: 160px;
+					height: 32px;
+					background: #01c0c8;
+					color: #fff;
+					position: relative;
+					overflow:hidden;
+				}
+				.action .fileupload>div,
+				.action .fileupload input{
+					position: absolute;
+					width: 100%;
+					height: 100%;
+					cursor: pointer;
+					top: 0;
+					left: 0;
+				}
+				.action .fileupload>div{
+					z-index: 10;
+					line-height: 32px;
+					text-align: center;
+				}
+				.action .fileupload input{
+					opacity: 0;
+					filter:alpha(opacity=0);
+					z-index: 11;
+					font-size:200px;
+					margin-left:-50px;
+				}
+				.action button{
+					display: block;
+					width: 60px;
+					background: #4ea2e3;
+					color: #fff;
+					height: 32px;
+					line-height: 32px;
+					border: none;
+					margin-left: 5px;
+					cursor: pointer;
+				}
+				.err{
+					color: #ff5600;
+					float: left;
+					font-size: 14px;
+					line-height: 32px;
+					margin: 0; 	
+					padding-left: 5px;
+					vertical-align: top;
+				}
+			</style>
+		</head>
+		<body>
+			<script src="__PUBLIC__/js/jquery-1.9.1.min.js"></script>
+			<script src="__PUBLIC__/js/cropbox.js"></script>
+
+			<div class="container">
+				<div class="imageBox">
+					<div class="thumbBox" style="width: 150px;height: 210px; margin-left: -80px; margin-top: -100px;"></div>
+					<div class="spinner" >请选择图片...</div>
+				</div>
+				
+				<div class="action">
+					<div class="fileupload" style="float: left;">
+						<div class="selecter">选择图片</div>
+						<input type="file" id="file" accept="image/*" style="float:left; width: 250px">
+					</div>
+					<p class="err" id="err"></p>
+				
+					<button type="button" id="btnCrop" style="float: right">确定</button>
+					<button type="button" id="btnZoomIn" style="float: right">放大</button>
+					<button type="button" id="btnZoomOut" style="float: right">缩小</button>
+				</div>
+			</div>
+		
+			<script type="text/javascript">
+
+				$(window).load(function() {
+	
+					var options = {
+						thumbBox: '.thumbBox',
+						spinner: '.spinner'
+					}
+
+					var cropper = $('.imageBox').cropbox(options);
+					
+					$('#file').on('change', function(){ 
+
+						var reader = new FileReader();
+						reader.onload = function(e) {
+							options.imgSrc = e.target.result;
+							var header = options.imgSrc.substring(0, 20);
+							
+							if (!(header.indexOf("jpg") > 0 || header.indexOf("jpeg") > 0 || header.indexOf("png") > 0)) {
+			
+								$("#err").text('所选文件应为jpg或png格式图片');
+								alert("所选文件应为jpg或png格式图片.");
+								return;
+
+							}
+							cropper = $('.imageBox').cropbox(options);
+
+						}
+						reader.readAsDataURL(this.files[0]);
+				
+					});
+					
+					$('#btnCrop').on('click', function(){
+				
+						var img;
+						try{
+							img = cropper.getDataURL();
+						}catch(e){
+		
+						}
+
+						if(!$("#file").val()||!img) {
+							alert("请选择图片");
+							return;
+						}
+
+						var length1 = img.length ; 
+						var header1 = img.substring(0,20) ; 
+	
+						if(length1/1.35>2000000){
+							$("#err").text('所选文件过大');
+							alert("所选文件过大");
+							return;
+						}
+
+						if(!(header1.indexOf("jpg") > 0 || header1.indexOf("png") > 0)){
+							$("#err").text('所选文件应为jpg或png格式图片 ');
+							alert(0, "所选文件应为jpg或png格式图片.");
+							return;
+						}
+						// 截图判断 
+						try {
+
+							var img = cropper.getDataURL();
+							var length = img.length;
+							var header = img.substring(0, 20);
+							
+							
+							if (!(header.indexOf("jpg") > 0 ||  header.indexOf("jpeg") > 0 || header.indexOf("png") > 0)) {
+								
+								$("#err").text('所选文件应为2M以内jpg、png格式');
+								alert(0, "所选文件应为2M以内jpg、png格式");
+								return;
+							}
+							
+							if(length/1.35>2000000){
+								$("#err").text('所截取的图片过大');
+								alert(0, "所截取的图片过大.");
+								return;
+							}
+
+							window.parent.photo_div_get(img) ; 
+
+						}catch(e){
+							
+							$("#err").text('所选文件应为2M以内jpg、png格式');
+							alert(0, "所选文件应为2M以内jpg、png格式");
+							return;
+
+						}
+					});
+
+					$('#btnZoomIn').on('click', function(){
+						var img;
+						try{
+							img = cropper.getDataURL();
+						}catch(e){
+		
+						}
+
+						if(!$("#file").val()||!img) {
+							alert("请选择图片");
+							return;
+						}
+						cropper.zoomIn();
+					});
+
+					$('#btnZoomOut').on('click', function(){
+						var img;
+						try{
+							img = cropper.getDataURL();
+						}catch(e){
+		
+						}
+
+						if(!$("#file").val()||!img) {
+							alert("请选择图片");
+							return;
+						}
+						cropper.zoomOut();
+					});
+
+				});
+			</script>
+	</body>
+	</html>
+	
+	

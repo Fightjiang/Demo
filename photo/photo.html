@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+    <head> <meta charset="utf-8"> </head>
+    <!-- 照片上传 -->
+    <style>
+    .title{font-size: 20px; padding: 10px 0;} 
+
+    .file{display: inline-block; position: relative; vertical-align: middle;  border: solid 1px #c8d2d7; width: 150px;height: 200px; }
+    .file input{opacity: 0; cursor: pointer;}
+    .file input,.file>img{ height: 100%; left: 0; position: absolute; top: 0; width: 100%;}
+
+    .file .file-selecter {background: rgba(160, 170, 178, 0.6); height: 100%; left: 0; position: absolute; top: 0; width: 100%; cursor: pointer;}
+    .file .file-selecter .selecter{ width: 60px; height: 94px; text-align: center; color: #fff; font-size: 14px; position: absolute;top: 50%; left: 50%; margin-left: -30px; margin-top: -47px; }
+    .file .file-selecter .selecter img{ display: block; width: 58px; margin: 0 auto 15px auto;}
+    .info{display: inline-block; vertical-align: middle; padding-left: 70px;}
+
+    </style>
+
+    <div id="photo_upload" class="mytab">
+
+        <form id = "photo_form",enctype="multipart/form-data">
+        <div class="file">
+            <img id="identityPhotoImg" src="./userphoto1.jpg" onerror = "javascript:this.src='./userphoto1.jpg';"/>
+            <div id="PhotoImg_selecter" class="file-selecter">
+                <div  class="selecter"  onclick="photo_div_show()" >
+                    <img src="./file_selecter.png" />
+                    <p>点击上传</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info" style="font-size : 16px;">
+            ·请上传三个月内、正面免冠2寸彩色证件照 <br />·2M以内的JPG、PNG格式
+        </div>
+        <div style="padding-top: 10px ; ">
+            
+            <input type="button" id="photo-save" class="btn btn-primary" value="点击上传" onclick="photo_div_show()" />
+            
+        </div>
+
+        </form>
+    </div>
+    <div id="photo_div"
+        style=" position: absolute; width: 100%; height: 100%; top: 0; left: 0; background-color: rgba(0, 0, 0, 0.2); ">
+        <div id="popupDiv" 
+            style="position: absolute; width: 600px; height: 500px; background-color: white; left: 50%; top: 50%; margin-left: -20%; margin-top: -20%; border-radius:4px;">
+            
+            <p style="background: #fff;font-size: 16px;padding:0 0 0 25px; line-height: 48px; height: 30px;color: #344659;font-weight: bold;">证件照</p>
+            
+            <img id="close" style="position: absolute;right: 25px;top: 15px;width: 18px;height: 18px;cursor: pointer;" src="__PUBLIC__/img/icon-close.png" onclick="photo_div_cancle(this);">
+            
+            <iframe id="myFrame" frameborder="0" src="./photo_div.html"
+                style="position: absolute; width: 100%; height: 100%; ">
+            </iframe>
+
+        </div>
+    </div>
+        <!-- 照片上传子窗口隐藏处理  -->
+        <script type="text/javascript">
+
+        var photo_div = document.getElementById("photo_div");
+
+        function photo_div_fun() {
+            // 隐藏myDiv
+            document.getElementById("photo-save").setAttribute("disabled", true);
+            photo_div.style.display = "none";
+        }
+            
+        function photo_div_cancle() {
+            document.getElementById("photo-save").setAttribute("disabled", true);
+            photo_div.style.display = "none";
+        }
+            
+        function photo_div_show() {
+            photo_div.style.display = "block";
+        }
+        
+        function photo_div_get(photoimg) {
+            document.getElementById("photo-save").removeAttribute("disabled");
+            var img = document.getElementById("identityPhotoImg");
+            img.src = photoimg;
+            photo_div.style.display = "none";
+        }
+
+        window.onload = photo_div_fun();
+        
+        </script>
+    </html>
+
+<script src="https://unpkg.com/cos-js-sdk-v5/demo/common/cos-auth.min.js"></script><!-- 对象存储 -->
+<script>
+    var outTime = 10000;
+    // COS 照片上传
+    $("#photo-save").click(function(){
+        
+
+        // 请求用到的参数
+        var Bucket = 'hnust-dangxiao-photo-1256437267';
+        var Region = 'ap-guangzhou';
+        var protocol = location.protocol === 'https:' ? 'https:' : 'http:';
+        var prefix = protocol + '//' + Bucket + '.cos.' + Region + '.myqcloud.com/';
+
+        // 对更多字符编码的 url encode 格式
+        var camSafeUrlEncode = function (str) {
+            return encodeURIComponent(str)
+                .replace(/!/g, '%21')
+                .replace(/'/g, '%27')
+                .replace(/\(/g, '%28')
+                .replace(/\)/g, '%29')
+                .replace(/\*/g, '%2A');
+        };
+        
+        // 获取临时密钥
+        var stsCache;
+        var getCredentials = function (callback) {
+
+            if (stsCache && Date.now() / 1000 + 30 < stsCache.expiredTime) {
+                callback(data.credentials);
+
+                return;
+            }
+
+            var postData={
+            "action":"photo_sts",
+            }
+
+            $.ajax({
+            "url":"{:U('api_user')}",
+            "data":postData,
+            "type":"post",
+            "error":function(){
+                alert("服务器未正常响应，请重试");
+            },
+            "success":function(data){
+
+                var credentials = data.credentials;
+                if (credentials) {
+                    stsCache = data
+                } else {
+                alert("服务器错误，临时密钥获取失败"); 
+                //console.log("临时密钥获取失败") ; 
+                // wx.showModal({title: '临时密钥获取失败', content: JSON.stringify(data), showCancel: false});
+                }
+                callback(stsCache && stsCache.credentials);
+            },
+            "timeout":outTime,//超时设置
+            });
+        };
+        
+        // 计算签名
+        var getAuthorization = function (options, callback) {
+            getCredentials(function (credentials) {
+                callback({
+                    XCosSecurityToken: credentials.sessionToken,
+                    Authorization: CosAuth({
+                        SecretId: credentials.tmpSecretId,
+                        SecretKey: credentials.tmpSecretKey,
+                        Method: options.Method,
+                        Pathname: options.Pathname,
+                    })
+                });
+            });
+        };
+
+        // 上传文件
+        var uploadFile = function (file, dir,callback) {
+        
+            var Key = dir + file.name;
+            // 这里指定上传目录和文件名
+            getAuthorization({Method: 'PUT', Pathname: '/' + Key}, function (info) {
+
+                var auth = info.Authorization;
+                var XCosSecurityToken = info.XCosSecurityToken;
+                var url = prefix + camSafeUrlEncode(Key).replace(/%2F/, '/');
+                var xhr = new XMLHttpRequest();
+                xhr.open('PUT', url, true);
+                xhr.setRequestHeader('Authorization', auth);
+                XCosSecurityToken && xhr.setRequestHeader('x-cos-security-token', XCosSecurityToken);
+
+                xhr.onload = function () {
+                    if (xhr.status === 200 || xhr.status === 206) {
+                    // 更新数据库 user_img 和 Session_img 
+                    var postData={
+                        "action":"photo_upload",
+                        "data": Key,// 照片目录+名字
+                    }
+                    // console.log(Key) ; 
+                    $.ajax({
+                        "url":"{:U('api_user')}",
+                        "data":postData,
+                        "type":"post",
+                        "error":function(){
+                        alert("服务器未正常响应，请重试");
+                        },
+                        "success":function(response){
+                        if(response.status == '200'){
+                            alert("照片上传成功");
+                            window.location.href="index.php?s=/User/index";
+                        }else{
+                            alert(response.message);
+                        }
+                        },
+                        "timeout":outTime,//超时设置
+                    });
+                        
+                    } else {
+                        // callback('文件 ' + Key + ' 上传失败，状态码：' + xhr.status);
+                        alert("照片上传失败，状态码：" + xhr.status);
+                    }
+                };
+
+                /*xhr.onerror = function () {
+                    callback('文件 ' + Key + ' 上传失败，请检查是否没配置 CORS 跨域规则');
+                };*/
+                
+                xhr.send(file);
+            });
+        };
+        
+        base64Data = document.getElementById("identityPhotoImg").src ;
+
+        if(base64Data.indexOf('data:')==-1 || base64Data.indexOf('base64')==-1 ){
+            alert("请选择要上传的图片!") ; 
+            return ;
+        }
+
+        // 随机串生成
+        function randomWord(){
+        var str = "",
+            range = 6,
+            arr = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+
+        for(var i=0; i<range; i++){
+            pos = Math.round(Math.random() * (arr.length-1));
+            str += arr[pos];
+        }
+        return str;
+        }
+        //将base64转换为blob
+        function dataURLtoBlob(dataurl) { 
+        var arr = dataurl.split(','),
+            mime = arr[0].match(/:(.*?);/)[1],
+            bstr = atob(arr[1]),
+            n = bstr.length,
+            u8arr = new Uint8Array(n);
+        while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+        }
+        return new Blob([u8arr], { type: mime });
+        }
+
+        var blob = dataURLtoBlob(base64Data);
+        // 补零
+        function padding0(num, length) {
+            for(var len = (num + "").length; len < length; len = num.length) {
+                num = "0" + num;            
+            }
+            return "" + num;
+        }
+        // 照片目录 + 名称 img_name = /YYYY/MM/ 学号-随机串-DDHHMMSS.jpg 
+        var date = new Date(Date.now()) ;
+        var date_year = date.getFullYear() ; // 获取完整的年份(4位,1970)
+        var date_month = padding0(date.getMonth()+1,2) ; // 获取月份(0-11,0代表1月)
+        var date_day = padding0(date.getDate(),2);  // 获取日(1-31)
+        var date_hours = padding0(date.getHours(),2); // 获取小时数(0-23)
+        var date_minutes = padding0(date.getMinutes(),2); // 获取分钟数(0-59)
+        var date_seconds = padding0(date.getSeconds(),2); // 获取秒数(0-59)
+        var user_number = document.getElementById("user_info").rows[1].cells[1].innerHTML;// 学号
+        // var random_word = randomWord(6) ; // 6 位随机串
+        var dir = date_year + '/' + date_month + '/'  // 照片存储目录
+        var img_name = date_day + date_hours + date_minutes + date_seconds + user_number + '.jpg'; 
+        var file = new File([blob], img_name, {type: 'image/jpg'}); 
+        
+        uploadFile(file,dir);
+
+    });
+</script>
