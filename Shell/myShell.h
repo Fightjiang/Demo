@@ -7,6 +7,8 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <pwd.h>
 
 #define MAXLINE 1024        // 命令的最大长度
@@ -21,4 +23,5 @@ void builtin_command(char * , char ** , int) ;
 void External_command(char * , char ** , int) ; 
 void commandInbackgroud(char * , char ** , int) ; 
 void Pipe_command(char * , char ** , int ,int ) ; 
+void redirect(char * , char ** , int , int ,int ,int ,int) ; 
 #endif

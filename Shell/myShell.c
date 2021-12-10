@@ -1,6 +1,9 @@
 #include "myShell.h" 
 
+void signal_handle() { return ; } 
 int main() {
+    signal(SIGINT  , signal_handle) ; // father process catch Ctrl + C SIGINT signal , but do nothing
+    signal(SIGTSTP , signal_handle) ; // father process catch Ctrl + \ SIGTSTP signal , but do nothing 
     
     char *command = (char *) malloc(MAXLINE) , **parameters = (char **) malloc(sizeof(char*) * MAXPARAMTERS) ; 
     int i ;
@@ -15,17 +18,25 @@ int main() {
                 if(strcmp(command , "exit") == 0) break ; 
                 builtin_command(command , parameters , count - 1) ; 
             }else {
-                int Pipeflag = -1 , backflag = -1; 
+                int Pipeflag = -1 , backflag = -1 , input_redirect_flag = -1 , output_redirect_flag = -1; 
                 for(i = 0 ; i < count - 1 ; ++i) {
                     if(strcmp(*(parameters + i) , "||") == 0) {
-                        Pipeflag = i ; break; 
+                        Pipeflag = i ;  
                     }
                     if(strcmp(*(parameters + i) , "&") == 0) {
-                        backflag = i ; break; 
+                        backflag = i ;  
+                    }
+                    if(strcmp(*(parameters + i) , ">") == 0) {
+                        output_redirect_flag = i ;  
+                    }
+                    if(strcmp(*(parameters + i) , "<") == 0) {
+                        input_redirect_flag = i ;  
                     }
                 }
+                // 支持重定向 ">" , "<" , "||""
+                if(input_redirect_flag != -1 || output_redirect_flag != -1) redirect(command , parameters , count - 1 , Pipeflag , input_redirect_flag , output_redirect_flag , backflag)  ;  
                 // 支持管道
-                if(Pipeflag != -1) Pipe_command(command , parameters , count - 1 , Pipeflag) ; 
+                else if(Pipeflag != -1) Pipe_command(command , parameters , count - 1 , Pipeflag) ; 
                 // 后台运行
                 else if(backflag != -1) commandInbackgroud(command , parameters , count - 2) ;  
                 // 普通外部命令
